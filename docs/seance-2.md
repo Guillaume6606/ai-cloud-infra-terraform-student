@@ -61,7 +61,7 @@ URL=$(gcloud run services describe team1-manuel --region europe-west1 --format '
 curl -i $URL/health
 ```
 
-Notez le code HTTP obtenu, puis donnez-vous le droit d'appeler et recommencez avec un jeton :
+Notez le code HTTP obtenu (403 : la demande est rejetée avant d'atteindre votre conteneur), puis donnez-vous le droit d'appeler et recommencez avec un jeton :
 
 ```bash
 gcloud run services add-iam-policy-binding team1-manuel --region europe-west1 \
@@ -88,7 +88,8 @@ terraform init
 ```
 
 Votre state est l'objet `team1/default.tfstate` du bucket `advanced-cloud-ai-tfstate`. Vous n'avez pas
-accès au préfixe des autres équipes.
+accès au préfixe des autres équipes. `gcloud storage ls` sur la racine du bucket est refusé : c'est
+attendu, `terraform init` fonctionne quand même.
 
 ### B2. Écrire la tranche
 
@@ -125,30 +126,33 @@ ressources changent, et qu'est-ce que Cloud Run crée à chaque modification ?
 Les quatre signaux à suivre sont dans la console : Cloud Run → votre service → **Métriques**
 (latence, nombre de demandes par code, nombre d'instances, latence de démarrage).
 
-### C1. Latence sous charge
+### C1. Démarrage à froid
 
-```bash
-uv run tools/loadtest.py --url $URL --clients 8 --duration 60
-```
-
-Le script écrit `loadtest.csv` et affiche p50, p99, débit et erreurs. Refaites la mesure avec une autre
-valeur de concurrence par instance (`max_instance_request_concurrency`) et comparez.
-
-### C2. Démarrage à froid
-
-Un service sans trafic revient à zéro instance après une quinzaine de minutes. Pour ne pas attendre,
-déployez une nouvelle révision (modifiez une variable d'environnement, `terraform apply`), puis :
+Un service sans trafic revient à zéro instance après une quinzaine de minutes. Déployer une nouvelle
+révision ne suffit pas : Cloud Run attend qu'une instance soit prête avant de lui envoyer le trafic.
+Laissez donc le service au repos 15 minutes (c'est le bon moment pour rédiger A4 et relire votre
+Terraform), puis :
 
 ```bash
 uv run tools/loadtest.py --url $URL --cold
 ```
 
 Le script chronomètre la première demande, puis dix suivantes. Comparez avec la métrique
-« latence de démarrage du conteneur ».
+« latence de démarrage du conteneur » : d'où vient l'écart ?
+
+### C2. Latence sous charge
+
+```bash
+uv run tools/loadtest.py --url $URL --clients 8 --duration 60
+```
+
+Le script écrit `loadtest.csv` et affiche p50, p99, débit et erreurs. Lancez-le deux fois de suite et
+gardez la seconde mesure : la première paie le démarrage des nouvelles instances. Refaites la mesure
+avec une autre valeur de concurrence par instance (`max_instance_request_concurrency`) et comparez.
 
 ### C3. Instances au pic
 
-Relancez C1 avec 32 clients et lisez le nombre maximal d'instances dans l'onglet Métriques.
+Relancez C2 avec 32 clients et lisez le nombre maximal d'instances dans l'onglet Métriques.
 
 ### Ce que vous rendez
 
