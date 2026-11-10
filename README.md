@@ -25,11 +25,10 @@ vous en protège. Vérifiez le nom avant chaque suppression.
 | --- | --- |
 | `infra/` | votre Terraform : `backend.tf`, `variables.tf`, `main.tf`, `outputs.tf` |
 | `docs/seance-2.md` | énoncé de la séance 2 : déployer le service de scoring sur Cloud Run |
-| `tools/loadtest.py` | test de charge d'un service authentifié (p50, p99, débit, première demande) |
 
 ## Outils à installer
 
-`gcloud`, `terraform` (≥ 1.9), `docker`, `uv`. Puis :
+`gcloud`, `terraform` (≥ 1.9), `docker`. Puis :
 
 ```bash
 gcloud auth login

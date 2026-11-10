@@ -123,49 +123,23 @@ ressources changent, et qu'est-ce que Cloud Run crée à chaque modification ?
 
 ## C. Mesures
 
-Les quatre signaux à suivre sont dans la console : Cloud Run → votre service → **Métriques**
-(latence, nombre de demandes par code, nombre d'instances, latence de démarrage).
-
-### C1. Démarrage à froid
-
-Un service sans trafic revient à zéro instance après une quinzaine de minutes. Déployer une nouvelle
-révision ne suffit pas : Cloud Run attend qu'une instance soit prête avant de lui envoyer le trafic.
-Laissez donc le service au repos 15 minutes (c'est le bon moment pour rédiger A4 et relire votre
-Terraform), puis :
-
-```bash
-uv run tools/loadtest.py --url $URL --cold
-```
-
-Le script chronomètre la première demande, puis dix suivantes. Comparez avec la métrique
-« latence de démarrage du conteneur » : d'où vient l'écart ?
-
-### C2. Latence sous charge
-
-```bash
-uv run tools/loadtest.py --url $URL --clients 8 --duration 60
-```
-
-Le script écrit `loadtest.csv` et affiche p50, p99, débit et erreurs. Lancez-le deux fois de suite et
-gardez la seconde mesure : la première paie le démarrage des nouvelles instances. Refaites la mesure
-avec une autre valeur de concurrence par instance (`max_instance_request_concurrency`) et comparez.
-
-### C3. Instances au pic
-
-Relancez C2 avec 32 clients et lisez le nombre maximal d'instances dans l'onglet Métriques.
-
-### Ce que vous rendez
+Les mesures se font avec l'outillage de votre dépôt applicatif, pointé sur l'URL du service, et avec
+la console : Cloud Run → votre service → **Métriques** (latence, demandes par code, nombre
+d'instances, latence de démarrage). Chaque demande porte l'en-tête
+`Authorization: Bearer $(gcloud auth print-identity-token)`.
 
 Un court rapport par équipe, dans `docs/rapport-seance-2.md` de votre fork :
 
-| Mesure | Valeur | Conditions (clients, durée, concurrence, CPU, mémoire) |
+| Mesure | Valeur | Conditions (charge, concurrence, CPU, mémoire) |
 | --- | --- | --- |
-| p50 et p99 sous charge | | |
-| Temps de la première demande après un démarrage à froid | | |
-| Nombre d'instances au pic | | |
+| p50 et p99 sous votre test de charge | | |
+| Temps de démarrage à froid, après un retour à zéro instance | | |
+| Nombre d'instances au pic, lu dans Cloud Monitoring | | |
 | Lien du dépôt | | |
 
-Une phrase par mesure : qu'est-ce qui l'explique ?
+Un service sans trafic revient à zéro instance après une quinzaine de minutes. Déployer une nouvelle
+révision ne produit pas un démarrage à froid : Cloud Run attend qu'une instance soit prête avant de
+lui envoyer le trafic.
 
 ## D. Déploiement continu (optionnel)
 
