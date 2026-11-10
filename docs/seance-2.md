@@ -9,7 +9,7 @@ Dans tout l'énoncé, remplacez `team1` par votre identifiant d'équipe.
 | --- | --- | --- |
 | A. Déploiement à la main | 45 min | le service répond sur Cloud Run, créé dans la console |
 | B. Terraform | 1 h 15 | le même service, recréé par `terraform apply` |
-| C. Mesures | 45 min | p50, p99, démarrage à froid, instances au pic |
+| C. Observer le service | 20 min | latence, instances et démarrage lus dans la console |
 | D. Déploiement continu (optionnel) | 15 min | un `git push` déploie une nouvelle révision |
 
 Ce que le service attend, quelle que soit la plateforme :
@@ -121,25 +121,24 @@ curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" $URL/health
 Puis changez une valeur (la mémoire, par exemple), relisez le `plan` et appliquez : combien de
 ressources changent, et qu'est-ce que Cloud Run crée à chaque modification ?
 
-## C. Mesures
+## C. Observer le service déployé
 
-Les mesures se font avec l'outillage de votre dépôt applicatif, pointé sur l'URL du service, et avec
-la console : Cloud Run → votre service → **Métriques** (latence, demandes par code, nombre
-d'instances, latence de démarrage). Chaque demande porte l'en-tête
-`Authorization: Bearer $(gcloud auth print-identity-token)`.
+Tout se lit dans la console : Cloud Run → votre service → **Métriques** et **Révisions**.
 
-Un court rapport par équipe, dans `docs/rapport-seance-2.md` de votre fork :
+1. Envoyez quelques dizaines de demandes :
 
-| Mesure | Valeur | Conditions (charge, concurrence, CPU, mémoire) |
-| --- | --- | --- |
-| p50 et p99 sous votre test de charge | | |
-| Temps de démarrage à froid, après un retour à zéro instance | | |
-| Nombre d'instances au pic, lu dans Cloud Monitoring | | |
-| Lien du dépôt | | |
+   ```bash
+   TOKEN=$(gcloud auth print-identity-token)
+   for i in $(seq 50); do curl -s -o /dev/null -H "Authorization: Bearer $TOKEN" $URL/health; done
+   ```
 
-Un service sans trafic revient à zéro instance après une quinzaine de minutes. Déployer une nouvelle
-révision ne produit pas un démarrage à froid : Cloud Run attend qu'une instance soit prête avant de
-lui envoyer le trafic.
+2. Dans l'onglet Métriques, relevez la latence (p50 et p99), le nombre d'instances et la latence de
+   démarrage du conteneur.
+3. Modifiez une valeur dans votre Terraform (mémoire, concurrence, maximum d'instances), appliquez,
+   et retrouvez la nouvelle révision dans l'onglet Révisions.
+
+À rendre, dans `docs/rapport-seance-2.md` de votre fork : p50 et p99, latence de démarrage, nombre
+d'instances au pic, lien du dépôt.
 
 ## D. Déploiement continu (optionnel)
 
