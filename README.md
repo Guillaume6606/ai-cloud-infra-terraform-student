@@ -28,11 +28,44 @@ vous en protège. Vérifiez le nom avant chaque suppression.
 
 ## Outils à installer
 
-`gcloud`, `terraform` (≥ 1.9), `docker`. Puis :
+Il faut `gcloud`, `terraform` (≥ 1.9) et Docker. Toutes les commandes du cours sont des commandes
+bash.
+
+**macOS** : dans le Terminal.
 
 ```bash
+brew tap hashicorp/tap && brew install hashicorp/tap/terraform
+```
+
+`gcloud` : <https://cloud.google.com/sdk/docs/install>. Docker : celui du TD 1.
+
+**Windows** : tout se fait dans le terminal **Ubuntu (WSL 2)** installé pour le TD 1, jamais dans
+PowerShell. `gcloud` et `terraform` s'installent donc dans Ubuntu, pas dans Windows :
+
+```bash
+sudo apt-get update && sudo apt-get install -y gnupg curl lsb-release
+
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
+
+sudo apt-get update && sudo apt-get install -y terraform google-cloud-cli
+```
+
+Clonez le dépôt dans votre dossier Linux (`cd ~`), pas dans `/mnt/c/...`.
+
+**Les deux systèmes** : vérifier, puis se connecter.
+
+```bash
+terraform version && gcloud version && docker version
+
 gcloud auth login
 gcloud auth application-default login
 gcloud config set project advanced-cloud-ai
 gcloud auth configure-docker europe-west1-docker.pkg.dev
 ```
+
+Sous Windows, si le navigateur ne s'ouvre pas, ajoutez `--no-launch-browser` aux deux commandes
+`gcloud auth` : gcloud affiche un lien à ouvrir à la main et attend le code en retour.

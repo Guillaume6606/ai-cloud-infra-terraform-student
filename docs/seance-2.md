@@ -3,7 +3,8 @@
 Trois heures, en équipe. Vous partez du service de scoring empaqueté (dépôt applicatif) et vous
 arrivez à un service Cloud Run privé, décrit en Terraform, dont vous avez mesuré le comportement.
 
-Dans tout l'énoncé, remplacez `team1` par votre identifiant d'équipe.
+Dans tout l'énoncé, remplacez `team1` par votre identifiant d'équipe. Les commandes se lancent dans
+le Terminal sous macOS, dans le terminal Ubuntu (WSL 2) sous Windows.
 
 | Partie | Durée indicative | Résultat |
 | --- | --- | --- |
@@ -26,7 +27,7 @@ Ce que le service attend, quelle que soit la plateforme :
 ### A1. Construire et pousser l'image
 
 Cloud Run exécute des images `linux/amd64`. Sur un Mac Apple Silicon, une image construite sans
-`--platform` ne démarre pas.
+`--platform` ne démarre pas ; sous Windows (WSL) l'option est sans effet, gardez-la.
 
 ```bash
 IMAGE=europe-west1-docker.pkg.dev/advanced-cloud-ai/cloud-ai/team1-fraud-api:v1
