@@ -17,8 +17,8 @@ Ce que le service attend, quelle que soit la plateforme :
 | Élément | Valeur |
 | --- | --- |
 | Port d'écoute du conteneur | `8000` |
-| Historique client | fichier `history.parquet` dans le dossier `DATA_DIR` ; il n'est **pas** dans l'image |
-| Bucket des modèles | `advanced-cloud-ai-models`, contient `data/history.parquet` et `models/` |
+| Compteurs client et terminal | fichiers `customer_daily.parquet` et `terminal_daily.parquet` dans le dossier `DATA_DIR` ; ils ne sont **pas** dans l'image |
+| Bucket des modèles | `advanced-cloud-ai-models`, contient ces deux fichiers dans `data/` |
 | Variables conseillées sur 1 vCPU | `WEB_CONCURRENCY=1`, `XGB_NTHREAD=1` |
 
 ## A. Déploiement à la main
