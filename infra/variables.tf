@@ -27,3 +27,9 @@ variable "invokers" {
   description = "Identités autorisées à appeler le service, par exemple user:prenom@albertschool.com."
   type        = list(string)
 }
+
+variable "tx_topic" {
+  description = "Topic des transactions, identifiant complet projects/<projet>/topics/<topic>. Le changer remplace l'abonnement."
+  type        = string
+  default     = "projects/cymbal-fraudfinder/topics/ff-tx"
+}

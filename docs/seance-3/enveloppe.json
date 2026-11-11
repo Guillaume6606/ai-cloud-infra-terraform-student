@@ -1,0 +1,10 @@
+{
+  "message": {
+    "data": "eyJUWF9JRCI6ICI3YzMxOGNlMTA4YmUzZDk3MTEzNzEyZTZlMjlhZGM5NzdkZjBkNGY2IiwgIlRYX1RTIjogIjIwMjYtMTAtMDEgMDA6MDA6MDAiLCAiQ1VTVE9NRVJfSUQiOiAiNzY5NzE0MTU4OTE5NDk3MiIsICJURVJNSU5BTF9JRCI6ICI3MzQzNjEzMCIsICJUWF9BTU9VTlQiOiA5MC4zM30=",
+    "messageId": "1000000000000001",
+    "publishTime": "2026-11-11T19:52:00.123Z",
+    "attributes": {}
+  },
+  "subscription": "projects/advanced-cloud-ai/subscriptions/team1-tx-push",
+  "deliveryAttempt": 1
+}

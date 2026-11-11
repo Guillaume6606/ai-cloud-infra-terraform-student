@@ -25,6 +25,8 @@ vous en protège. Vérifiez le nom avant chaque suppression.
 | --- | --- |
 | `infra/` | votre Terraform : `backend.tf`, `variables.tf`, `main.tf`, `outputs.tf` |
 | `docs/seance-2.md` | énoncé de la séance 2 : déployer le service de scoring sur Cloud Run |
+| `docs/seance-3.md` | énoncé de la séance 3 : brancher le service sur un flux Pub/Sub |
+| `docs/seance-3/` | squelette `pubsub.tf`, exemple d'enveloppe push, modèle de compte rendu |
 
 ## Outils à installer
 
