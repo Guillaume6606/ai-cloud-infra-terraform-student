@@ -11,5 +11,6 @@
 
 ### Changed
 
+- L'identifiant d'équipe peut être un nom choisi (`team-really-cool`, `team-ghv`) : `team` suivi de minuscules, chiffres et tirets, 20 caractères au plus.
 - Énoncé de la séance 2 : le service lit `customer_daily.parquet` et `terminal_daily.parquet`
   (FraudFinder) au lieu de `history.parquet`.
