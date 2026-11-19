@@ -83,7 +83,10 @@ Le service a deux points d'entrée Pub/Sub :
 - `/pubsub` applique la décision. Il répond 204 si le message est traité, un code d'erreur sinon :
   Pub/Sub relivre alors le message, puis l'envoie en lettre morte.
 - `/pubsub/shadow` calcule et journalise le même score avec `shadow` vrai, sans appliquer la
-  décision. Il répond toujours 204 : rien n'est relivré.
+  décision. Il répond 204 : rien n'est relivré. Au démarrage à froid d'une révision, la plateforme
+  peut refuser quelques requêtes avec un 500 (« aborted after waiting too long for an available
+  instance ») que Pub/Sub relivre ; ces 500 n'apparaissent pas dans `measure.py`, seulement dans le
+  graphique des requêtes du tableau de bord.
 
 ### Les scripts
 
@@ -106,6 +109,10 @@ sinon celle qui a le plus de trafic.
 
 `measure.py` lit les logs `scored`, `failed` et `rejected` des dernières minutes et affiche une ligne
 par révision. Il n'a besoin que de Python 3 et de `gcloud` authentifié.
+
+Le projet limite le nombre de lectures de logs par minute, toutes équipes confondues : une seule
+personne par équipe lance la mesure, et on ne la relance pas en boucle. En cas d'erreur 429, attendez
+une minute avant de relancer.
 
 | Option | Rôle |
 | --- | --- |
@@ -243,7 +250,9 @@ sort.
 | âge du plus ancien message | moins de 60 secondes |
 
 Un écart d'alertes peut venir d'un modèle qui classe autrement : rapprochez-le du désaccord mesuré à
-l'étape 2 avant de conclure à une panne.
+l'étape 2 avant de conclure à une panne. Pour le taux d'alerte, fixez votre borne APRÈS l'ombre de
+l'étape 2, à partir de l'écart d'alertes mesuré en ombre, et notez-la dans `mesures.md` : un écart
+conforme à celui de l'ombre n'est pas un motif de retour arrière.
 
 **Ce que vous devez voir :** la section « Critères » de `mesures.md` remplie, avec des chiffres et
 une heure antérieure à votre premier déploiement.
@@ -317,12 +326,13 @@ production.
 
 **Ce que vous devez voir :** une ligne `VALIDATION` avec `"contrat": {"ok": true, ...}` ; après
 `release.sh`, une réponse de `/health` dont `"revision"` est la nouvelle révision ; dans la table du
-trafic, `candidate` à 0 % et `champion` à 100 % ; avec `--shadow`, une ligne pour la révision
+trafic, `candidate` sans pourcentage (colonne vide) et `champion` à 100 % ; avec `--shadow`, une ligne pour la révision
 candidate et `n` qui grandit d'une mesure à l'autre.
 
 **Preuve à noter :** le verdict, avec le segment le plus faible, l'écart global et son intervalle,
 et trois chiffres de comparaison en ombre : désaccord, écart de taux d'alerte, p95 du candidat face à
-celui du champion. Remplissez la ligne « ombre » du tableau de `mesures.md`.
+celui du champion. Remplissez la ligne « ombre » du tableau de `mesures.md`, puis fixez la borne
+d'alertes de l'étape 1 à partir de l'écart d'alertes mesuré.
 
 **Questions :**
 
@@ -389,7 +399,8 @@ celui du champion. Remplissez la ligne « ombre » du tableau de `mesures.md`.
    ```bash
    docs/seance-6/promote.sh team1 <version>
    gcloud ai models list --region europe-west1 --filter 'display_name=fraud-scorer-team1'
-   gcloud ai models list-version <MODEL_ID> --region europe-west1
+   gcloud ai models list-version <MODEL_ID> --region europe-west1 \
+     --format 'table(versionId,versionAliases.list())'
    ```
 
    `<MODEL_ID>` est la valeur de la colonne `MODEL_ID` affichée par `gcloud ai models list`.
