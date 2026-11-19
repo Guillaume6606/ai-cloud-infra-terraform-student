@@ -20,6 +20,8 @@ DELIVERIES = ("scored", "failed", "rejected")
 ERRORS = ("failed", "rejected")
 LIMIT_PER_MINUTE = 1500
 DEFAULT_PROJECT = "advanced-cloud-ai"
+QUOTA_WAITS = (20, 40, 60)
+QUOTA_MARKERS = ("429", "resource_exhausted", "quota exceeded")
 COLUMNS = (
     ("révision", None),
     ("n", "n"),
@@ -169,6 +171,7 @@ def read_logs(
     project: str = DEFAULT_PROJECT,
     runner=subprocess.run,
     now: float | None = None,
+    sleep=None,
 ) -> list[dict]:
     since = (time.time() if now is None else now) - minutes * 60
     stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(since))
@@ -188,19 +191,32 @@ def read_logs(
         "--format=json",
         f"--limit={limit}",
     ]
-    try:
-        done = runner(cmd, capture_output=True, text=True)
-    except FileNotFoundError:
-        raise MeasureError(
-            "gcloud est introuvable : installez le SDK Google Cloud ou ouvrez Cloud Shell."
-        ) from None
-    if done.returncode != 0:
+    waits = iter(QUOTA_WAITS)
+    while True:
+        try:
+            done = runner(cmd, capture_output=True, text=True)
+        except FileNotFoundError:
+            raise MeasureError(
+                "gcloud est introuvable : installez le SDK Google Cloud ou ouvrez Cloud Shell."
+            ) from None
+        if done.returncode == 0:
+            break
         stderr = (done.stderr or "").strip()
         lowered = stderr.lower()
         if "active account" in lowered or "reauthentication" in lowered or "log in" in lowered:
             raise MeasureError(
                 "gcloud n'est pas authentifié : lancez `gcloud auth login`, puis relancez."
             )
+        if any(marker in lowered for marker in QUOTA_MARKERS):
+            wait = next(waits, None)
+            if wait is None:
+                raise MeasureError("quota de lecture des logs atteint, relancez dans une minute.")
+            print(
+                f"Quota de lecture des logs atteint : nouvelle tentative dans {wait} s.",
+                file=sys.stderr,
+            )
+            (sleep or time.sleep)(wait)
+            continue
         raise MeasureError(f"gcloud logging read a échoué : {stderr or 'aucun détail'}")
     try:
         entries = json.loads(done.stdout or "[]")
