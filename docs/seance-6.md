@@ -71,12 +71,15 @@ Le service journalise une ligne JSON par message reçu, avec le champ `message` 
 
 | `message` | Quand | Champs utiles |
 | --- | --- | --- |
-| `scored` | le message est scoré | `tx_id`, `revision`, `model_version`, `score`, `decision`, `latency_ms`, `degraded`, `shadow` |
+| `scored` | le message est scoré | `tx_id`, `revision`, `model_version`, `score`, `decision`, `latency_ms`, `features_ms`, `degraded`, `shadow`, `error` |
 | `failed` | le calcul du score échoue | `tx_id`, `revision`, `model_version`, `shadow`, `status`, `error` |
 | `rejected` | le message est illisible ou la transaction invalide | `tx_id`, `revision`, `model_version`, `shadow`, `status`, `error` |
 
 `decision` vaut vrai quand `score` atteint le seuil d'alerte du service, 0,0012 par défaut. Sur le
 rejeu, le champion met environ 10 % des transactions en alerte.
+
+`latency_ms` est le temps de traitement du message, `features_ms` le temps de lecture des features,
+tous deux en millisecondes. Sur une ligne `scored`, `error` n'apparaît qu'en mode dégradé.
 
 Le service a deux points d'entrée Pub/Sub :
 
@@ -485,7 +488,7 @@ critère invoqué, l'alias déplacé.
    ```bash
    gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.revision_name="<révision next>"' \
      --freshness 10m --limit 20 \
-     --format 'table(timestamp,severity,jsonPayload.message,jsonPayload.score,jsonPayload.decision,jsonPayload.latency_ms,jsonPayload.error)'
+     --format 'table(timestamp,severity,jsonPayload.message,jsonPayload.score,jsonPayload.decision,jsonPayload.latency_ms,jsonPayload.features_ms,jsonPayload.error)'
    ```
 
    Dans ce TD, la révision `next` reste à 10 % jusqu'à 1:35 pour vous laisser le temps du
@@ -511,8 +514,9 @@ Remplissez la ligne « panne » de `mesures.md`.
 
 - `/health` de la révision `next` répond `"status":"ok"` : il prouve que le conteneur démarre, pas
   que la révision se comporte sous trafic comme la révision saine.
-- Le service dans son ensemble paraît normal : comparez les quatre signaux **révision par révision**.
-  À 10 %, un défaut de la révision `next` pèse peu dans le total.
+- Un total du service qui bouge peu : à 10 %, le total dilue le défaut de la révision `next`. C'est
+  la ligne par révision qui le montre nettement : comparez les quatre signaux **révision par
+  révision**.
 - Aucune ligne pour la révision `next` dans `measure.py` : vérifiez la table du trafic et le nom de
   révision passé à `--revisions`.
 
@@ -527,12 +531,17 @@ Remplissez la ligne « panne » de `mesures.md`.
    gcloud run services update-traffic team1-scorer --region europe-west1 --to-tags candidate=100
    ```
 
-2. Attendez trois minutes après le retour arrière, puis mesurez sur les trois dernières minutes :
-   une mesure lancée tout de suite contiendrait encore la panne. Les quatre signaux doivent être
-   revenus dans leur bande. Cloud Run ne revalide rien lors d'un retour arrière : seule votre mesure
-   le prouve.
+2. La commande de retour arrière peut durer de quelques secondes à plus de deux minutes. Pendant ce
+   temps, une partie du trafic suit encore l'ancienne répartition. Attendez la **fin** de la
+   commande et relisez la table du trafic. Attendez ensuite trois minutes, puis mesurez sur les
+   trois dernières minutes : une mesure lancée plus tôt contiendrait encore la panne. Les quatre
+   signaux doivent être revenus dans leur bande. Cloud Run ne revalide rien lors d'un retour
+   arrière : seule votre mesure le prouve.
 
    ```bash
+   gcloud run services describe team1-scorer --region europe-west1 \
+     --flatten 'status.traffic[]' \
+     --format 'table(status.traffic.revisionName,status.traffic.tag,status.traffic.percent)'
    python3 docs/seance-6/measure.py --service team1-scorer --minutes 3 \
      --revisions <révision candidate> <révision next>
    ```
