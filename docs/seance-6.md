@@ -48,7 +48,7 @@ la main.
 | Job de validation | `team1-validate` (job Cloud Run) | compare le challenger au champion sur le mois de validation |
 | Registre | `fraud-scorer-team1` (Vertex AI) | version d'alias `champion` (en service) et version d'alias `challenger` (séance 5) |
 | Tableau de bord | « TD6 team1 » (Cloud Monitoring) | latence, requêtes, décisions et scores par révision ; file de messages |
-| Scripts | `docs/seance-6/` | `release.sh`, `shadow.sh`, `validate.sh`, `promote.sh`, `measure.py`, `release.yml` |
+| Scripts | `docs/seance-6/` | `release.sh`, `shadow.sh`, `validate.sh`, `promote.sh`, `measure.py`, `release.yml` ; le squelette `release.tf` de « Après le TD » |
 
 Vos droits : déployer une révision, modifier la répartition du trafic, créer et supprimer un
 abonnement Pub/Sub, lire les logs et les métriques, déplacer un alias du registre, créer une règle
@@ -651,7 +651,8 @@ dites-le dans votre décision.
 ## Après le TD — Mettre en Terraform ce que vous avez fait à la main
 
 Une fois l'étape 5 terminée, l'état de votre service ne tient qu'à des commandes tapées dans un
-terminal. Écrivez-le en Terraform, pour qu'il soit relu, versionné et reconstructible.
+terminal. Écrivez-le en Terraform, pour qu'il soit relu, versionné et reconstructible. Comptez
+environ une heure.
 
 | Ce que vous avez fait à la main | Fichier | Ressource Terraform | Ce que vous en faites |
 | --- | --- | --- | --- |
@@ -680,6 +681,8 @@ terminal. Écrivez-le en Terraform, pour qu'il soit relu, versionné et reconstr
    provider "google" {
      project = "advanced-cloud-ai"
      region  = "europe-west1"
+
+     add_terraform_attribution_label = false
    }
 
    import {
@@ -687,6 +690,9 @@ terminal. Écrivez-le en Terraform, pour qu'il soit relu, versionné et reconstr
      id = "projects/advanced-cloud-ai/locations/europe-west1/services/team1-scorer"
    }
    ```
+
+   Sans la ligne `add_terraform_attribution_label = false`, le fournisseur ajoute un libellé au
+   service, et le plan annonce une modification.
 
    **Dans `infra/scorer/`, on ne lance ni `terraform apply` ni `terraform destroy` : le service
    appartient au socle.**
@@ -709,42 +715,94 @@ terminal. Écrivez-le en Terraform, pour qu'il soit relu, versionné et reconstr
      }
    ```
 
-   Relisez `scorer.tf` : les blocs `traffic` doivent nommer la révision en service et ses tags, le
-   bloc `template` ses variables d'environnement. Relancez le plan et enregistrez sa sortie :
+   Relisez `scorer.tf` : les blocs `traffic` doivent nommer la révision en service et ses tags. Le
+   bloc `template` décrit la **dernière révision créée** (`template.revision`), pas forcément celle
+   qui sert le trafic : après un retour arrière, ce sont deux révisions différentes. Comparez
+   `template.revision` à la révision qui porte 100 % dans les blocs `traffic`. Relancez le plan et
+   enregistrez sa sortie :
 
    ```bash
    terraform plan -no-color | tee ../../docs/seance-6/plan.txt
    ```
 
-4. **L'ombre**, dans `infra/release.tf`. Déclarez une variable `shadow_tag`, vide par défaut, et la
-   ressource `google_pubsub_subscription.shadow` avec `count = var.shadow_tag == "" ? 0 : 1` : vide,
-   aucun abonnement ; renseignée, l'abonnement `team1-shadow` pousse vers
-   `<adresse du tag>/pubsub/shadow`. L'adresse du tag se lit dans `traffic_statuses` d'une source de
-   données `data "google_cloud_run_v2_service"`. Reprenez de `shadow.sh` le topic, le compte de
-   poussée et l'audience.
-5. **L'alerte**, dans `infra/release.tf`. Déclarez `google_monitoring_alert_policy.release` : la
-   règle de la restitution, nommée `team1-...` et limitée à `team1-scorer`, sur une métrique de
-   Cloud Run ou sur `td6_scored`, `td6_score`, `td6_failed`. Si vous avez déjà créé cette règle dans
-   la console (extension « Alerte »), supprimez-la avant l'`apply`.
-6. Depuis `infra/`, vérifiez, puis appliquez l'ombre et l'alerte seulement. Les `-target` évitent
-   d'appliquer en même temps un écart laissé par une autre séance entre votre code et l'état réel.
+   Si les deux révisions diffèrent, écrivez-le en une ligne en tête de `plan.txt` : le gabarit
+   courant du service n'est pas celui qui sert, et il faut le savoir pour reconstruire le service.
+4. `plan.txt` contient les adresses des comptes qui ont créé et modifié le service (`creator`,
+   `last_modifier`). Votre fork est public : masquez-les avant le commit.
+
+   ```bash
+   sed -E 's/((creator|last_modifier)[[:space:]]*=[[:space:]]*)"[^"]*"/\1"<adresse>"/' \
+     ../../docs/seance-6/plan.txt > plan.masque && mv plan.masque ../../docs/seance-6/plan.txt
+   grep '@' ../../docs/seance-6/plan.txt | grep -v -e 'gserviceaccount\.com' -e '@sha256:'
+   ```
+
+   La dernière commande ne doit rien renvoyer. Les adresses qui restent dans `plan.txt` sont celles
+   des comptes de service (elles finissent par `iam.gserviceaccount.com`) et, s'il y en a, les
+   empreintes d'image (`@sha256:...`) : elles peuvent rester. `scorer.tf` ne contient ni
+   `creator` ni `last_modifier`. Relancez ce masquage chaque fois que vous régénérez `plan.txt`.
+5. **L'ombre**, dans `infra/release.tf`. Copiez le squelette :
 
    ```bash
    cd ..
+   cp ../docs/seance-6/release.tf release.tf
+   ```
+
+   Il déclare la variable `shadow_tag`, vide par défaut, et l'abonnement
+   `google_pubsub_subscription.shadow` avec `count = var.shadow_tag == "" ? 0 : 1` : vide, aucun
+   abonnement ; renseignée, l'abonnement `team1-shadow` pousse vers `<adresse du tag>/pubsub/shadow`.
+   L'adresse du tag est lue dans `traffic_statuses` de la source de données du service. Le topic, le
+   compte de poussée et l'audience sont ceux de `shadow.sh`. Lisez cette partie : il n'y a rien à y
+   compléter.
+6. **L'alerte**, dans le même fichier. `google_monitoring_alert_policy.release` est la règle de la
+   restitution : celle qui aurait détecté votre panne. Sa structure est écrite : nom
+   `team1-scorer-release`, libellé `team`, une condition à seuil évaluée révision par révision de
+   `team1-scorer`. Faites les trois choix marqués `À COMPLÉTER` :
+
+   | Choix | Ce que vous écrivez |
+   | --- | --- |
+   | (1) le signal | le type de métrique, l'aligneur et le réducteur d'une des trois lignes en commentaire : latence Cloud Run, compteur `td6_scored` ou `td6_failed`, distribution `td6_score` |
+   | (2) le seuil | une valeur dans l'unité de la métrique |
+   | (3) la durée | combien de temps le seuil doit être franchi, un multiple de 60 s |
+
+   Le projet n'a pas de canal de notification : la règle s'ouvre dans **Monitoring → Alertes**,
+   sans envoi. Si vous avez déjà créé cette règle dans la console (extension « Alerte »),
+   supprimez-la avant l'`apply`.
+7. Depuis `infra/`, vérifiez, puis appliquez l'ombre et l'alerte seulement. Les `-target` évitent
+   d'appliquer en même temps un écart laissé par une autre séance entre votre code et l'état réel.
+
+   ```bash
+   grep -n 'À COMPLÉTER' release.tf
    terraform fmt
    terraform validate
    terraform apply -target=google_pubsub_subscription.shadow -target=google_monitoring_alert_policy.release
    ```
 
+   La commande `grep` ne doit rien renvoyer.
+8. Testez l'ombre une fois, avec les mêmes `-target`, puis réappliquez sans la variable :
+
+   ```bash
+   terraform apply -var shadow_tag=candidate \
+     -target=google_pubsub_subscription.shadow -target=google_monitoring_alert_policy.release
+   gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="team1-scorer" AND jsonPayload.message="scored" AND jsonPayload.shadow=true' \
+     --freshness 2m --limit 3 --format json
+   terraform apply -target=google_pubsub_subscription.shadow -target=google_monitoring_alert_policy.release
+   ```
+
+   Le premier `apply` crée `team1-shadow`, le dernier le supprime.
+
 **Ce que vous devez voir :** dans `plan.txt`, `google_cloud_run_v2_service.scorer` annoncé en import
-(`will be imported`), sans destruction ni remplacement ; après l'`apply`, la règle d'alerte dans
-**Monitoring → Alertes** et aucun abonnement `team1-shadow`.
+(`will be imported`) et la ligne `Plan: 1 to import, 0 to add, 0 to change, 0 to destroy` ; pendant
+le test, quelques lignes `scored` avec `shadow` vrai ; après le dernier `apply`, la règle d'alerte
+dans **Monitoring → Alertes** et aucun abonnement `team1-shadow`.
 
 **Si vous voyez...**
 
-- Un plan qui veut modifier ou remplacer le service : la configuration générée ne décrit plus l'état
-  réel (trafic déplacé depuis, argument retiré à la main). Supprimez `scorer.tf` et régénérez-le ;
-  n'appliquez rien.
+- Un écart du plan sur `terraform_labels` ou `effective_labels` : vérifiez la ligne
+  `add_terraform_attribution_label = false` du bloc `provider` de `infra/scorer/main.tf`. Régénérer
+  `scorer.tf` ne le corrige pas.
+- Un autre écart, qui veut modifier ou remplacer le service : la configuration générée ne décrit plus
+  l'état réel (trafic déplacé depuis, argument retiré à la main). Supprimez `scorer.tf` et
+  régénérez-le ; n'appliquez rien.
 - Une erreur de validation sur `scorer.tf` : retirez l'argument signalé, puis relancez le plan.
 
 L'alias `champion` du registre reste hors de Terraform : c'est une décision de mise en service,
