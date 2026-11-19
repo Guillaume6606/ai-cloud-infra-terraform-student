@@ -18,6 +18,11 @@
 - Séance 3 : énoncé (`docs/seance-3.md`), squelette `docs/seance-3/pubsub.tf` (abonnement push, file de
   messages morts), exemple d'enveloppe, modèle de compte rendu, variable `tx_topic`.
 
+### Fixed
+
+- Séance 6 : `tag_info` (`lib.sh`) et `release.yml` lisent la révision et l'adresse du tag sans `--filter` (`gcloud run services describe` le refuse), ce qui débloque `release.sh` et `shadow.sh`.
+- Séance 6 : l'énoncé précise l'affichage des alias du registre, la colonne de pourcentage vide d'une révision sans trafic, les 500 au démarrage à froid, la borne d'alertes fixée après l'ombre (avec sa place dans `mesures.md`) et le quota de lecture des logs ; `measure.py` réessaie quand ce quota est dépassé.
+
 ### Changed
 
 - L'identifiant d'équipe peut être un nom choisi (`team-really-cool`, `team-ghv`) : `team` suivi de minuscules, chiffres et tirets, 20 caractères au plus.
