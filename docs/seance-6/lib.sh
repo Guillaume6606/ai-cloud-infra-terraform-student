@@ -151,8 +151,9 @@ tag_info() {
     return 0
   fi
   gcloud run services describe "${1}-scorer" --region "$REGION" --project "$PROJECT" \
-    --flatten='status.traffic[]' --filter="status.traffic.tag=${2}" \
-    --format='value(status.traffic.revisionName,status.traffic.url)'
+    --flatten='status.traffic[]' \
+    --format='value(status.traffic.tag,status.traffic.revisionName,status.traffic.url)' |
+    awk -F'\t' -v t="$2" '$1==t{print $2 "\t" $3; exit}'
 }
 
 env_set() {

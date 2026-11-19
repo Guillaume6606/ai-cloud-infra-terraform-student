@@ -101,8 +101,9 @@ jobs:
             --set-env-vars "^;^$(printf '%s' "$ENV_LIST" | tr '\n' ';')"
 
           INFO=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
-            --flatten='status.traffic[]' --filter="status.traffic.tag=$TAG" \
-            --format='value(status.traffic.revisionName,status.traffic.url)')
+            --flatten='status.traffic[]' \
+            --format='value(status.traffic.tag,status.traffic.revisionName,status.traffic.url)' |
+            awk -F'\t' -v t="$TAG" '$1==t{print $2 "\t" $3; exit}')
           echo "Révision : ${INFO%%$'\t'*}"
           echo "Adresse du tag : ${INFO#*$'\t'}"
           echo "tag_url=${INFO#*$'\t'}" >> "$GITHUB_OUTPUT"
