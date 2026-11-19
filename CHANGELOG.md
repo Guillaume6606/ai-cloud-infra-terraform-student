@@ -4,6 +4,9 @@
 
 ### Added
 
+- Séance 6 : énoncé (`docs/seance-6.md` : état de départ, critères, validation et ombre, paliers à 10, 50 et 100 %, panne, retour arrière, restitution, extensions, grille) ; `docs/seance-6/measure.py` (mesure par révision depuis les logs du service) ; modèles `mesures.md`, `post-mortem.md` et `checklist.md` (six lignes de préparation opérationnelle).
+- Séance 6 : section « Après le TD » de l'énoncé, qui fait écrire en Terraform l'état atteint à la main : service `team1-scorer` décrit dans un dossier séparé `infra/scorer/` (état local, `import` et `-generate-config-out`, `prevent_destroy`, `plan` seulement, jamais `apply` ni `destroy`) ; abonnement d'ombre (`count` sur `shadow_tag`) et règle d'alerte dans `infra/release.tf`, appliqués avec `-target` ; `plan.txt` et les fichiers Terraform ajoutés au livrable et à la ligne Restorable de la checklist.
+- Séance 6 : scripts de livraison `docs/seance-6/` (`release.sh` : révision sans trafic avec tag ; `shadow.sh` : abonnement d'ombre ; `validate.sh` : job de validation ; `promote.sh` : alias `champion` ; `lib.sh`) et workflow `release.yml` (`workflow_dispatch`, authentification WIF). `release.sh`, `shadow.sh`, `validate.sh` et `promote.sh` acceptent `--help` et `DRY_RUN=1` ; `lib.sh` est la bibliothèque qu'ils chargent.
 - Séance 5 : énoncé (`docs/seance-5.md`), squelette `docs/seance-5/job.tf` (job Cloud Run
   d'entraînement et de recherche, compte `<équipe>-train`, sortie VPC vers la base Optuna), script
   `custom-job.sh` (entraînement final en custom job Vertex AI), modèle de compte rendu.
