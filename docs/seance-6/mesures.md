@@ -24,6 +24,8 @@ Objectif de service : ... % des transactions scorées en moins de ... ms.
 | Taux d'alerte | ... % | ... | ... | `measure.py`, `alertes` |
 | Âge du plus ancien message | ... s | ... | ... | tableau de bord |
 
+Borne d'alertes fixée après l'ombre (étape 2) : ... ; écart d'alertes mesuré en ombre : ... points ; heure : ...
+
 Durée d'observation par palier : ... min.
 
 Commande de retour arrière (étapes 1 à 3) :
