@@ -31,6 +31,8 @@ vous en protège. Vérifiez le nom avant chaque suppression.
 | `docs/seance-5/` | squelette `job.tf`, script `custom-job.sh` (Vertex AI), modèle de compte rendu |
 | `docs/seance-6.md` | énoncé de la séance 6 : livrer le challenger par paliers, diagnostiquer une panne, revenir en arrière |
 | `docs/seance-6/` | scripts de livraison (`release.sh`, `shadow.sh`, `validate.sh`, `promote.sh`, `lib.sh`), mesure par révision (`measure.py`), workflow `release.yml`, modèles de `mesures.md`, `post-mortem.md` et `checklist.md` |
+| `docs/seance-7.md` | énoncé de la séance 7 : servir un LLM sur GPU, mesurer sa latence et son débit, le chiffrer, le tracer, juger un modèle candidat |
+| `docs/seance-7/` | module Terraform du service LLM du groupe (`llm/`, à initialiser avec `terraform init -backend-config="prefix=<groupe>/llm"`), modèles de `mesures.md`, `cout.md` et `fiche.md` |
 
 ## Outils à installer
 

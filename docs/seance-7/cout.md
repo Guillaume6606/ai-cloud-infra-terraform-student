@@ -1,0 +1,48 @@
+# Coût séance 7 — groupe : ...
+
+Les prix restent vides : le prix de l'API est relu sur la page de tarifs le jour même, le prix horaire du GPU sur la page de tarifs de Cloud Run.
+
+## Prix relevés
+
+| Prix | Valeur | Source et date |
+| --- | --- | --- |
+| Prix horaire du GPU (L4 sur Cloud Run, région ...) | ... $ / h | ... |
+| Prix d'entrée de l'API (modèle ...) | ... $ par million de tokens | ... |
+| Prix de sortie de l'API | ... $ par million de tokens | ... |
+
+## Hypothèses du fil rouge
+
+| Hypothèse | Valeur |
+| --- | --- |
+| Alertes par jour | 17 280 |
+| Tokens d'entrée par alerte | 800 |
+| Tokens de sortie par alerte | 150 |
+| Débit total à saturation (étape 2) | ... tokens/s |
+
+## Formules
+
+```text
+coût par million de tokens = prix horaire ÷ (tokens par seconde × 3 600 × taux d'occupation) × 1 000 000
+coût API par jour          = alertes × (tokens d'entrée × prix d'entrée + tokens de sortie × prix de sortie) ÷ 1 000 000
+coût GPU par jour          = prix horaire × 24
+volume de bascule          = coût GPU par jour ÷ coût API d'une alerte
+débit moyen nécessaire     = alertes × tokens de sortie ÷ 86 400
+```
+
+## Les nombres de la preuve (étape 3)
+
+| Nombre | Valeur |
+| --- | --- |
+| Coût par million de tokens à 100 % d'occupation | ... $ |
+| Coût par million de tokens à 20 % d'occupation | ... $ |
+| Coût par jour, API | ... $ |
+| Coût par jour, GPU | ... $ |
+| Volume de bascule | ... alertes par jour |
+
+## Vérification de capacité
+
+| Mesure | Valeur |
+| --- | --- |
+| Débit moyen nécessaire (formule ci-dessus) | ... tokens/s |
+| Débit mesuré à saturation (étape 2) | ... tokens/s |
+| Un seul L4 suffit au volume ? | ... |
