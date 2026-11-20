@@ -45,7 +45,7 @@ resource "google_cloud_run_v2_service" "llm" {
       startup_probe {
         period_seconds    = 10
         timeout_seconds   = 5
-        failure_threshold = 24
+        failure_threshold = 30
 
         http_get {
           path = "/health"
