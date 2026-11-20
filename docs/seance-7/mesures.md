@@ -39,7 +39,7 @@ Prompt de 200 tokens, réponse de 200 tokens. Colonnes de `load.py`.
 | 16 | 200 | 200 | ... | ... | ... | ... | ... | ... |
 | 32 | 200 | 200 | ... | ... | ... | ... | ... | ... |
 
-Créneaux occupés pendant le palier à 16 (`/slots`) : ... ; requêtes en attente (`/metrics`) : ...
+Lecture faite pendant le palier à 8 (jamais à 16 : le `curl` serait la 17e requête d'un service à concurrence 16 et attendrait). Créneaux occupés (`/slots`) : ... ; `n_ctx` par créneau lu dans `/slots` : ... tokens ; requêtes en attente (`/metrics`) : ...
 
 Saturation : le débit total ne monte plus à partir de ... requêtes simultanées, à ... tokens/s.
 

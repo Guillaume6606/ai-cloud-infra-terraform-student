@@ -18,6 +18,8 @@ Démarrage à froid : ... s. Délai avant le premier token (prompt de ... tokens
 
 Choix : API ou GPU : ... Coût par jour de l'API : ... $ ; du GPU : ... $. Volume de bascule : ... alertes par jour.
 
+Débit de sortie requis (alertes par jour × 150 ÷ 86 400) : ... tokens/s, contre un débit total mesuré à l'étape 2 de ... tokens/s. Le GPU ne gagne sur le coût que si un seul L4 tient ce débit : ...
+
 ## Trois nombres à surveiller (étapes 2 et 4)
 
 1. ... , seuil : ...
