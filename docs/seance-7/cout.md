@@ -14,10 +14,12 @@ Les prix restent vides : le prix de l'API est relu sur la page de tarifs le jour
 
 | Hypothèse | Valeur |
 | --- | --- |
-| Alertes par jour | 17 280 |
+| Alertes par jour | 87 216 (voir ci-dessous) |
 | Tokens d'entrée par alerte | 800 |
 | Tokens de sortie par alerte | 150 |
 | Débit total à saturation (étape 2) | ... tokens/s |
+
+Volume d'alertes : séance 6, 7 268 alertes sur les 72 000 premiers messages du rejeu, soit 10,09 % (Mesuré, seuil 0,0012). À 10 transactions par seconde, une journée compte 864 000 transactions : 864 000 × 7 268 ÷ 72 000 = 87 216 alertes par jour (Dérivé ; hypothèse : le taux du 1er octobre tient toute la journée). Les 800 tokens d'entrée et 150 tokens de sortie par alerte restent l'hypothèse de départ, à corriger avec la mesure de l'étape 4.
 
 ## Formules
 
@@ -38,11 +40,15 @@ débit moyen nécessaire     = alertes × tokens de sortie ÷ 86 400
 | Coût par jour, API | ... $ |
 | Coût par jour, GPU | ... $ |
 | Volume de bascule | ... alertes par jour |
+| Coût API d'une alerte (formule de la ligne « volume de bascule ») | ... $ |
+| Coût GPU par million de tokens de sortie, à comparer au prix de sortie de l'API (mêmes unités : $ par million de tokens) | ... $ contre ... $ |
 
 ## Vérification de capacité
 
 | Mesure | Valeur |
 | --- | --- |
-| Débit moyen nécessaire (formule ci-dessus) | ... tokens/s |
-| Débit mesuré à saturation (étape 2) | ... tokens/s |
+| Débit de sortie requis (alertes par jour × 150 ÷ 86 400) | ... tokens/s |
+| Débit total mesuré à l'étape 2 | ... tokens/s |
 | Un seul L4 suffit au volume ? | ... |
+
+Le GPU ne gagne sur le coût que si un seul L4 tient ce débit : sinon il faut plusieurs instances et le coût par jour du GPU se multiplie.

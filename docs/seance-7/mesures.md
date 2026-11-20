@@ -16,7 +16,7 @@ Région attribuée : ... ; rôles pour cette étape (manipulation, mesure, analy
 
 Médiane de trois mesures par ligne, mesure à froid écartée.
 
-| Prompt (tokens) | Sortie (tokens) | Premier token (ms) | Tokens/s | Durée totale (s) | Contrôle : premier token + sortie ÷ tokens/s (s) |
+| Prompt (tokens) | Sortie (tokens) | Premier token (ms) | Tokens/s | Durée totale (s) | Contrôle (s) : premier token (ms) ÷ 1 000 + sortie ÷ tokens/s |
 | --- | --- | --- | --- | --- | --- |
 | 200 | 50 | ... | ... | ... | ... |
 | 200 | 200 | ... | ... | ... | ... |

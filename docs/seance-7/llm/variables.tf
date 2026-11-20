@@ -4,7 +4,7 @@ variable "group" {
 
   validation {
     condition     = can(regex("^team(-?[a-z0-9]+)+$", var.group)) && length(var.group) <= 20
-    error_message = "L'identifiant du groupe est celui donné par l'enseignant : team1, team-really-cool, team3 ou team-ghv (20 caractères au plus)."
+    error_message = "L'identifiant du groupe est celui donné par l'enseignant : team0, team1, team-really-cool, team3 ou team-ghv (20 caractères au plus)."
   }
 }
 
@@ -25,12 +25,18 @@ variable "image" {
 }
 
 variable "slots" {
-  description = "Créneaux de génération parallèles du serveur (LLAMA_ARG_N_PARALLEL). Alignés sur la concurrence du service."
+  description = "Créneaux de génération parallèles du serveur (LLAMA_ARG_N_PARALLEL). Ne change pas la concurrence du service, fixée à 16 dans main.tf."
   type        = number
   default     = 16
+
+  validation {
+    condition     = var.slots >= 1 && floor(var.slots) == var.slots
+    error_message = "slots est un entier supérieur ou égal à 1."
+  }
 }
 
 variable "project_id" {
-  type    = string
-  default = "advanced-cloud-ai"
+  description = "Projet GCP qui héberge le service."
+  type        = string
+  default     = "advanced-cloud-ai"
 }

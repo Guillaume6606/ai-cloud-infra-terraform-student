@@ -1,0 +1,20 @@
+{"doc_id": "kyc-01", "expected": {"doc_type": "extrait_kbis", "name": "Manon Moreau", "address": "169 rue des Écoles, Toulouse", "date": "10/01/2026", "amount": null}}
+{"doc_id": "kyc-02", "expected": {"doc_type": "carte_grise", "name": "Lina Richard", "address": "81 rue du Moulin, Tours", "date": "12/01/2026", "amount": null}}
+{"doc_id": "kyc-03", "expected": {"doc_type": "releve_bancaire", "name": "Chloé Petit", "address": "127 rue des Lilas, Tours", "date": "12/01/2026", "amount": "802.87"}}
+{"doc_id": "kyc-04", "expected": {"doc_type": "contrat_travail", "name": "Nina Durand", "address": "123 rue du Moulin, Toulouse", "date": "21/06/2026", "amount": "1300.75"}}
+{"doc_id": "kyc-05", "expected": {"doc_type": "facture_eau", "name": "Inès Thomas", "address": "149 rue Victor Hugo, Nantes", "date": "28/06/2026", "amount": "342.15"}}
+{"doc_id": "kyc-06", "expected": {"doc_type": "rib", "name": "Léa Durand", "address": "67 rue des Lilas, Toulouse", "date": "06/01/2026", "amount": null}}
+{"doc_id": "kyc-07", "expected": {"doc_type": "facture_energie", "name": "Sarah Martin", "address": "92 rue des Écoles, Lyon", "date": "04/01/2026", "amount": "431.89"}}
+{"doc_id": "kyc-08", "expected": {"doc_type": "certificat_scolarite", "name": "Camille Durand", "address": "139 rue Pasteur, Grenoble", "date": "18/09/2026", "amount": null}}
+{"doc_id": "kyc-09", "expected": {"doc_type": "facture_telecom", "name": "Zoé Martin", "address": "27 rue Pasteur, Angers", "date": "03/06/2026", "amount": "1658.49"}}
+{"doc_id": "kyc-10", "expected": {"doc_type": "quittance_loyer", "name": "Manon Martin", "address": "159 rue Pasteur, Tours", "date": "16/07/2026", "amount": "713.78"}}
+{"doc_id": "kyc-11", "expected": {"doc_type": "avis_imposition", "name": "Léa Leroy", "address": "164 rue du Moulin, Grenoble", "date": "26/07/2026", "amount": "1758.27"}}
+{"doc_id": "kyc-12", "expected": {"doc_type": "bulletin_salaire", "name": "Emma Simon", "address": "44 rue de la République, Lyon", "date": "17/07/2026", "amount": "695.31"}}
+{"doc_id": "kyc-13", "expected": {"doc_type": "attestation_hebergement", "name": "Paul Martin", "address": "127 rue de la République, Lille", "date": "14/07/2026", "amount": null}}
+{"doc_id": "kyc-14", "expected": {"doc_type": "taxe_fonciere", "name": "Nina Bernard", "address": "73 rue de la République, Reims", "date": "22/03/2026", "amount": "2360.42"}}
+{"doc_id": "kyc-15", "expected": {"doc_type": "attestation_assurance", "name": "Sarah Simon", "address": "127 rue Victor Hugo, Grenoble", "date": "19/06/2026", "amount": null}}
+{"doc_id": "kyc-16", "expected": {"doc_type": "carte_grise", "name": "Louis Leroy", "address": "38 rue Victor Hugo, Nantes", "date": "07/02/2026", "amount": null}}
+{"doc_id": "kyc-17", "expected": {"doc_type": "attestation_assurance", "name": "Manon Simon", "address": "146 rue du Moulin, Bordeaux", "date": "15/02/2026", "amount": null}}
+{"doc_id": "kyc-18", "expected": {"doc_type": "releve_bancaire", "name": "Léa Leroy", "address": "51 rue des Lilas, Grenoble", "date": "20/08/2026", "amount": "1699.59"}}
+{"doc_id": "kyc-19", "expected": {"doc_type": "rib", "name": "Paul Durand", "address": "115 rue de la Gare, Rennes", "date": "04/06/2026", "amount": null}}
+{"doc_id": "kyc-20", "expected": {"doc_type": "releve_bancaire", "name": "Inès Laurent", "address": "163 rue du Moulin, Bordeaux", "date": "16/07/2026", "amount": "1493.62"}}
