@@ -69,6 +69,22 @@ def make_counter(url: str, token: str | None, timeout: float) -> Callable[[str],
     return lambda text: math.ceil(ratio * len(text.split()))
 
 
+def chat_overhead(url: str, token: str | None, timeout: float) -> int:
+    body = {
+        "messages": [{"role": "user", "content": "x"}],
+        "max_tokens": 1,
+        "temperature": 0,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+    try:
+        res = llmclient.stream_chat(url, token, body, timeout)
+    except Exception:
+        return 0
+    used = (res.usage or {}).get("prompt_tokens") or (res.timings or {}).get("prompt_n")
+    return max(0, used - 1) if res.status == 200 and used else 0
+
+
 def build_prompt(
     target_tokens: int, marker: str, shared_prefix: int, count_tokens: Callable[[str], int]
 ) -> str:
@@ -275,12 +291,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         token = llmclient.identity_token(args.url)
         counter = make_counter(args.url, token, args.timeout)
+        target = max(1, args.prompt_tokens - chat_overhead(args.url, token, args.timeout))
         batches = [
             run_batch(
                 args.url,
                 token,
                 args.concurrency,
-                args.prompt_tokens,
+                target,
                 args.max_tokens,
                 args.shared_prefix,
                 args.ignore_eos,
