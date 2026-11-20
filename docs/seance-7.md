@@ -53,8 +53,9 @@ séance. Vous déployez votre service vous-mêmes, à l'étape 0.
 Le service `team1-llm` a un GPU L4 sans redondance zonale, 4 vCPU, 16 Gio de mémoire et un
 processeur toujours alloué. Il a **une instance au maximum**, qui reçoit **16 requêtes simultanées au
 plus** (la concurrence). Il n'est pas public : chaque appel porte un jeton d'identité. Le serveur
-partage un contexte de 32 768 tokens entre **16 créneaux**, qui génèrent chacun une réponse en même
-temps que les autres.
+est lancé avec **16 créneaux**, qui génèrent chacun une réponse en même temps que les autres, et un
+contexte de 32 768 tokens qu'il devrait partager entre eux : la part réelle de chaque créneau
+(`n_ctx`) se lit dans `/slots` (étape 2).
 
 | Groupe | Région |
 | --- | --- |
@@ -114,8 +115,9 @@ est exportée, et ne demandent un jeton neuf à `gcloud` que si elle ne l'est pa
 ## Les scripts
 
 Ils sont dans `docs/seance-7/` ; lancez-les depuis ce dossier (`cd docs/seance-7`), avec `python3`.
-`load.py`, `eval.py` et `memory.py` n'ont besoin que de Python 3 et de `gcloud` authentifié ;
-`explain_alert.py` a besoin des paquets de `requirements.txt` (étape 4). `llmclient.py` est la
+`load.py`, `eval.py` et `memory.py` n'ont besoin que de Python 3.9 ou plus récent et de `gcloud`
+authentifié, sans rien installer ; `explain_alert.py` a besoin de Python 3.10 ou plus récent et des
+paquets de `requirements.txt` (étape 4). `llmclient.py` est la
 bibliothèque commune aux scripts : on ne le lance pas. Chaque script accepte `--help`. Lisez-les
 avant de les lancer.
 
@@ -193,7 +195,9 @@ document dont la requête a échoué compte ses cinq champs faux.
 poids du modèle, du cache KV et du tampon de calcul. `--project` change de projet (défaut :
 `advanced-cloud-ai`) ; `--file logs.txt` lit un fichier de logs au lieu d'appeler `gcloud`. Le projet
 limite les lectures de logs par minute, toutes équipes confondues : une seule personne par groupe le
-lance. Un code de sortie différent de 0 signale un échec, expliqué par le message affiché.
+lance. Codes de sortie : `0` tableau affiché ; `1` aucune ligne de taille mémoire trouvée (le serveur
+n'a pas encore démarré, ou mauvais service) ; `2` lecture des logs impossible (`gcloud` absent ou non
+authentifié).
 
 ### Explication d'une alerte : `explain_alert.py`
 
@@ -202,8 +206,8 @@ alertes de `docs/seance-7/alerts.jsonl` : des transactions du rejeu que le champ
 sans leur label de fraude. Pour chaque alerte, la fonction `explain()` enchaîne trois étapes :
 charger le contexte de l'alerte, appeler le modèle avec le client `openai`, valider le JSON renvoyé.
 Le script affiche la durée de chaque étape et les tokens d'entrée et de sortie, puis l'explication.
-`--alerts` lit un autre fichier d'alertes. Un code de sortie différent de 0 signale un échec,
-expliqué par le message affiché.
+`--alerts` lit un autre fichier d'alertes. Codes de sortie : `0` au moins une alerte expliquée ;
+`1` aucune réponse valide ; `2` jeton absent ou refusé (même parade que pour `load.py`).
 
 ## Étape 0 — Servir (15 min)
 
@@ -211,27 +215,33 @@ expliqué par le message affiché.
 démarrer.
 
 1. Committez votre travail en cours, puis sur GitHub cliquez **Sync fork** et lancez `git pull`. Vous
-   récupérez cet énoncé et le dossier `docs/seance-7/`.
+   récupérez cet énoncé et le dossier `docs/seance-7/`. Vérifiez le projet de `gcloud` :
+
+   ```bash
+   gcloud config set project advanced-cloud-ai
+   ```
+
 2. Renseignez votre groupe et **la région attribuée** (tableau des régions), initialisez avec le
    préfixe de state du groupe, puis appliquez :
 
-   ```bash
-   cd docs/seance-7/llm
-   cat > terraform.tfvars <<'EOF'
-   group  = "team1"
-   region = "europe-west1"
-   EOF
-   terraform init -backend-config="prefix=team1/llm"
-   terraform apply
-   ```
+```bash
+cd docs/seance-7/llm
+cat > terraform.tfvars <<'EOF'
+group  = "team1"
+region = "europe-west1"
+EOF
+terraform init -backend-config="prefix=team1/llm"
+terraform apply
+```
 
-   Le state est dans le bucket partagé, sous `team1/llm` : tout membre du groupe pourra détruire le
-   service depuis son poste en fin de séance. Le préfixe est `team1/llm`, **jamais `team1` seul** :
-   c'est celui du state de votre dossier `infra/`.
+Le state est dans le bucket partagé, sous `team1/llm` : tout membre du groupe pourra détruire le
+service depuis son poste en fin de séance. Le préfixe est `team1/llm`, **jamais `team1` seul** : c'est
+celui du state de votre dossier `infra/`.
 
-   La création du service prend plusieurs minutes (tirage de l'image, chargement du modèle sur le GPU,
-   sonde `/health`) : n'interrompez pas `terraform apply`. Relevez la durée affichée sur la ligne
-   `google_cloud_run_v2_service.llm: Creation complete after ...`.
+La création du service prend plusieurs minutes (tirage de l'image, chargement du modèle sur le GPU,
+sonde `/health`) : n'interrompez pas `terraform apply`. Relevez la durée affichée sur la ligne
+`google_cloud_run_v2_service.llm: Creation complete after ...`.
+
 3. Relevez l'adresse du service, prenez un jeton, puis envoyez une première requête en la
    chronométrant :
 
@@ -247,11 +257,13 @@ démarrer.
    La durée à relever est le temps réel : ligne `real` sous bash, valeur `total` sous zsh.
 4. Renvoyez **la même commande** juste après : c'est le temps à chaud.
 5. Lisez les trois réglages du service, dans la console (**Cloud Run → `team1-llm` → Révisions**,
-   détail de la révision en service) ou avec la commande ci-dessous : le nombre de GPU, le nombre
-   maximal d'instances, la concurrence.
+   détail de la révision en service) ou avec la commande ci-dessous : le nombre de GPU et leur type
+   (`nvidia.com/gpu`, `accelerator`), le nombre maximal d'instances
+   (`autoscaling.knative.dev/maxScale`), la concurrence (`containerConcurrency`).
 
    ```bash
-   gcloud run services describe team1-llm --region europe-west1
+   gcloud run services describe team1-llm --region europe-west1 --format yaml \
+     | grep -E 'nvidia.com/gpu|accelerator|autoscaling.knative.dev/maxScale|containerConcurrency'
    ```
 
 6. Revenez dans `docs/seance-7/` pour la suite : `cd ..`.
@@ -347,13 +359,13 @@ des requêtes en cours, et une requête qui arrive rejoint le lot sans attendre 
    palier ou entre deux paliers, jamais pendant le palier à 16 (voir « Si vous voyez... ») :
 
    ```bash
-   python3 load.py --url "$URL" --concurrency 8 --prompt-tokens 200 --max-tokens 200 > palier-8.txt &
+   python3 load.py --url "$URL" --concurrency 8 --prompt-tokens 200 --max-tokens 200 > /tmp/palier-8.txt &
    sleep 5
    time curl -sS -H "Authorization: Bearer $TOKEN" "$URL/slots" \
-     | python3 -c 'import json, sys; s = json.load(sys.stdin); print(sum(1 for x in s if x.get("is_processing")), "créneaux occupés sur", len(s))'
+     | python3 -c 'import json, sys; s = json.load(sys.stdin); print(sum(1 for x in s if x.get("is_processing")), "créneaux occupés sur", len(s), "; n_ctx par créneau :", s[0].get("n_ctx"))'
    curl -sS -H "Authorization: Bearer $TOKEN" "$URL/metrics" | grep '^llamacpp:'
    wait
-   cat palier-8.txt
+   cat /tmp/palier-8.txt
    ```
 
    Dans les métriques, lisez notamment `llamacpp:requests_processing` (requêtes en cours dans le
@@ -377,7 +389,7 @@ des requêtes en cours, et une requête qui arrive rejoint le lot sans attendre 
 créneaux occupés sur 16 et des lignes `llamacpp:`.
 
 **Preuve à noter** (section « Plusieurs requêtes » de `mesures.md`) : les cinq lignes de mesures, les
-créneaux occupés et les requêtes en attente lus pendant la charge (en précisant le palier : 8), le
+créneaux occupés, le `n_ctx` par créneau et les requêtes en attente lus pendant le palier à 8, le
 palier à partir duquel le débit total ne monte plus, et le sort des requêtes au-delà de 16.
 
 **Si vous voyez...**
@@ -400,14 +412,14 @@ palier à partir duquel le débit total ne monte plus, et le sort des requêtes 
 **Objectif :** transformer un débit mesuré en coût, et choisir entre l'API et le GPU pour le fil
 rouge.
 
-Remplissez `cout.md` avec ces hypothèses :
+Les hypothèses du fil rouge sont déjà dans `cout.md` ; les prix et le débit sont à y remplir :
 
 | Hypothèse | Valeur | Origine |
 | --- | --- | --- |
 | Alertes par jour | 87 216 | taux d'alerte du champion mesuré sur le rejeu de la séance 6 : 7 268 alertes sur les 72 000 premières transactions, soit 10,09 % au seuil 0,0012, appliqué aux 864 000 transactions d'une journée à 10 transactions par seconde. Hypothèse : le taux du 1er octobre vaut toute la journée |
 | Tokens d'entrée par alerte | 800 | hypothèse du cours ; l'étape 4 mesure la vraie valeur |
 | Tokens de sortie par alerte | 150 | hypothèse du cours ; l'étape 4 mesure la vraie valeur |
-| Prix horaire du GPU | environ 1,05 $ | L4 sur Cloud Run avec 4 vCPU et 16 Gio, sans redondance zonale ; vérifiez-le pour votre région sur la [page de tarifs de Cloud Run](https://cloud.google.com/run/pricing) |
+| Prix horaire du GPU | à recalculer ; ordre de grandeur : environ 1,05 $ (estimation) | regroupe, facturés à la seconde, le GPU L4 sans redondance zonale, 4 vCPU et 16 Gio. Relisez ces trois prix unitaires pour votre région sur la [page de tarifs de Cloud Run](https://cloud.google.com/run/pricing), puis calculez : prix horaire = (prix du GPU par seconde + 4 × prix d'un vCPU par seconde + 16 × prix d'un Gio par seconde) × 3 600. Votre résultat doit être proche de l'estimation ; notez-le dans `cout.md` avec la source et la date |
 | Prix de l'API | à relever | modèle `gemini-3.5-flash-lite`, prix d'entrée et de sortie par million de tokens, relus aujourd'hui sur la [page de tarifs de Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/pricing) ; notez la date |
 
 Les formules sont dans `cout.md` :
@@ -424,10 +436,11 @@ débit moyen nécessaire     = alertes × tokens de sortie ÷ 86 400
 2. Calculez le coût par million de tokens du service à 100 % puis à 20 % d'occupation.
 3. Relevez le prix de l'API.
 4. Chiffrez le fil rouge par jour : par l'API, puis par un L4 allumé en continu.
-5. Calculez le volume de bascule : le nombre d'alertes par jour à partir duquel le GPU coûte moins
-   cher que l'API.
-6. Calculez le débit moyen nécessaire, en tokens de sortie par seconde, et comparez-le au débit total
-   mesuré à l'étape 2.
+5. Calculez le coût API d'une alerte, puis le volume de bascule : le nombre d'alertes par jour à
+   partir duquel le GPU coûte moins cher que l'API. Remplissez aussi la ligne de `cout.md` qui met le
+   coût GPU par million de tokens de sortie face au prix de sortie de l'API.
+6. Calculez le débit moyen nécessaire (le « débit de sortie requis » de `cout.md`), en tokens de
+   sortie par seconde, et comparez-le au débit total mesuré à l'étape 2.
 7. Décidez. Au volume du fil rouge, laquelle des deux options coûte le moins par jour ? Le volume de
    bascule est-il au-dessus ou en dessous du volume du fil rouge ? Le GPU ne l'emporte que si deux
    conditions tiennent : il coûte moins cher par jour, **et** un seul L4 tient le débit moyen
@@ -450,8 +463,8 @@ au débit total mesuré, puis votre décision.
 - Un coût par million de tokens sans taux d'occupation : il suppose un GPU plein en permanence.
   Donnez toujours le taux avec le coût.
 - Un coût du GPU comparé au prix d'entrée de l'API : le coût par million de tokens du GPU porte sur
-  les tokens générés (le débit mesuré compte les tokens de sortie). Comparez des coûts par jour, ou
-  par alerte, entrée et sortie comprises.
+  les tokens générés (le débit mesuré compte les tokens de sortie). Comparez-le au prix de sortie de
+  l'API, et pour décider, comparez des coûts par jour, entrée et sortie comprises.
 - Un GPU compté seulement aux heures de bureau : les alertes arrivent jour et nuit, l'instance reste
   allumée 24 heures sur 24.
 - Le débit par requête utilisé comme capacité : la capacité du service est le débit total.
@@ -463,7 +476,10 @@ vérifie.
 
 **Objectif :** voir dans une trace où partent le temps et les tokens d'une demande.
 
-1. Installez les paquets du script, dans un environnement virtuel hors du dépôt :
+1. Installez les paquets du script (`docs/seance-7/requirements.txt`), dans un environnement virtuel
+   hors du dépôt. Ils demandent **Python 3.10 ou plus récent** : vérifiez avec `python3 --version`.
+   Cloud Shell convient. Sous macOS, le `python3` du système est en 3.9 : faites cette étape dans
+   Cloud Shell, ou créez l'environnement avec un Python plus récent (`python3.12 -m venv ...`).
 
    ```bash
    python3 -m venv ~/.venv-td7
@@ -471,7 +487,8 @@ vérifie.
    pip install -r requirements.txt
    ```
 
-   Dans un nouveau terminal, réactivez-le avec `. ~/.venv-td7/bin/activate`.
+   Dans un nouveau terminal, réactivez-le avec `. ~/.venv-td7/bin/activate`. `load.py`, `eval.py` et
+   `memory.py` n'ont pas besoin de cet environnement.
 2. Lancez le script tel quel, pour voir ce qu'il affiche :
 
    ```bash
@@ -547,6 +564,9 @@ coût d'une alerte.
   peut mettre quelques dizaines de secondes à apparaître.
 - `ModuleNotFoundError: No module named 'opentelemetry'` (ou `'openai'`) : l'environnement virtuel
   n'est pas activé, ou `requirements.txt` n'est pas installé.
+- `pip` qui ne trouve aucune version de `openai==...` ou d'`opentelemetry-...` : votre Python est
+  plus ancien que 3.10. Recréez l'environnement avec un Python plus récent, ou passez sur Cloud
+  Shell.
 - Des tokens absents du span : l'appel au modèle doit rester non diffusé (pas de `stream=True`) ; une
   réponse diffusée ne renvoie pas ses compteurs de tokens par défaut.
 - `IndentationError` : les lignes d'un bloc `with` sont décalées de quatre espaces de plus que le
@@ -562,7 +582,7 @@ coût d'une alerte.
 
    ```bash
    python3 eval.py --url "$URL" --documents kyc_eval/
-   TEACHER_URL=<adresse donnée par l'enseignant>
+   TEACHER_URL="<adresse donnée par l'enseignant>"
    python3 eval.py --url "$TEACHER_URL" --documents kyc_eval/
    ```
 
@@ -614,8 +634,8 @@ Détruisez ensuite votre service (section « Fin de séance »).
 | --- | --- | --- |
 | Cache de préfixe | Envoyez deux fois le même prompt de 1 500 tokens, puis deux prompts qui partagent leurs 1 400 premiers tokens. | Le délai avant le premier token avec et sans préfixe commun, et ce que cela change pour un RAG. |
 | Créneaux et contexte | Redéployez avec 4 créneaux au lieu de 16 et envoyez un prompt long. | La taille d'un créneau lue dans `/slots` et la longueur de prompt acceptée dans chaque réglage, et le compromis entre contexte et parallélisme. |
-| Passerelle | Appelez le modèle à travers la passerelle LiteLLM de l'enseignant, avec la clé de votre groupe, jusqu'à atteindre son quota de tokens. | La réponse reçue une fois le quota atteint, et la dépense affichée pour le groupe. |
-| Bascule sur place | Déployez le modèle 8 bits comme nouvelle révision sans trafic, testez-la, basculez, supprimez l'ancienne. | Les deux révisions, puis une seule, et le GPU de marge rendu. |
+| Passerelle | Si l'enseignant ouvre la passerelle ce jour-là : appelez le modèle à travers sa passerelle LiteLLM, avec la clé de votre groupe, jusqu'à atteindre son quota de tokens. | La réponse reçue une fois le quota atteint, et la dépense affichée pour le groupe. |
+| Bascule sur place | Avec un GPU de marge accordé par l'enseignant : déployez le modèle 8 bits comme nouvelle révision sans trafic, testez-la, basculez, supprimez l'ancienne. | Les deux révisions, puis une seule, et le GPU de marge rendu. |
 
 ### Cache de préfixe
 
@@ -657,8 +677,16 @@ for p in 1500 2500 4000 8000; do python3 load.py --url "$URL" --prompt-tokens $p
 
 Un prompt refusé fait sortir `load.py` avec le code 1 et le message du serveur : notez-le. Le
 redéploiement crée une nouvelle révision, donc une nouvelle instance : comptez un nouveau démarrage.
-Si l'`apply` échoue sur le quota de GPU, détruisez d'abord le service (`terraform destroy`), puis
-relancez `terraform apply -var slots=4`.
+Si l'`apply` échoue sur le quota de GPU, détruisez d'abord le service, réappliquez, puis relisez
+l'adresse avant de relancer les mesures :
+
+```bash
+cd llm
+terraform destroy
+terraform apply -var slots=4
+URL=$(terraform output -raw url)
+cd ..
+```
 
 ### Passerelle
 
@@ -668,8 +696,8 @@ chaque groupe et refuse les requêtes au-delà du quota. Appelez-la en boucle en
 chaque réponse, puis lisez le corps de la première réponse refusée :
 
 ```bash
-GATEWAY=<adresse donnée par l'enseignant>
-KEY=<clé du groupe>
+GATEWAY="<adresse donnée par l'enseignant>"
+KEY="<clé du groupe>"
 for i in $(seq 1 50); do
   curl -sS -o /dev/null -w '%{http_code}\n' "$GATEWAY/v1/chat/completions" \
     -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
@@ -708,7 +736,7 @@ Basculez, puis supprimez l'ancienne révision, nommée dans la liste des révisi
 ```bash
 gcloud run services update-traffic team1-llm --region europe-west1 --to-tags q8=100
 gcloud run revisions list --service team1-llm --region europe-west1
-gcloud run revisions delete <ancienne révision> --region europe-west1
+gcloud run revisions delete "<ancienne révision>" --region europe-west1
 gcloud run revisions list --service team1-llm --region europe-west1
 ```
 
@@ -766,3 +794,7 @@ service à la main, **en vérifiant le nom** : c'est le vôtre, pas celui d'un a
 ```bash
 gcloud run services delete team1-llm --region europe-west1
 ```
+
+Le compte de service `team1-llm` reste alors en place. Relancez `terraform destroy` dès que le state
+est de nouveau accessible : il supprime ce qui reste. Sinon, signalez-le à l'enseignant, qui le
+supprimera.
